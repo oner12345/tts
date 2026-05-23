@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 文字轉語音工具 (TTS)</title>
+    <!-- 引入 Tailwind CSS 用於 RWD 與現代化 UI 視覺 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* 簡單的微調，確保滑桿與按鈕手感更好 */
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #3b82f6;
+            cursor: pointer;
+            transition: background 0.15s ease-in-out;
+        }
+        input[type="range"]::-webkit-slider-thumb:hover {
+            background: #2563eb;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col justify-between antialiased">
+
+    <!-- 主體內容區塊 -->
+    <main class="flex-grow flex items-center justify-center p-4 sm:p-6 lg:p-8">
+        <div class="bg-white w-full max-w-2xl rounded-2xl shadow-xl shadow-slate-200/80 border border-slate-100 p-6 sm:p-8 transition-all">
+            
+            <!-- 標題 -->
+            <div class="mb-6 text-center sm:text-left">
+                <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">文字轉語音工具</h1>
+                <p class="text-sm text-slate-500 mt-1">輸入你想說的話，讓瀏覽器幫你唸出來。</p>
+            </div>
+
+            <!-- 文字輸入區域 -->
+            <div class="mb-5">
+                <label for="text-input" class="block text-sm font-semibold text-slate-700 mb-2">輸入文字</label>
+                <textarea id="text-input" rows="5" 
+                    class="w-full rounded-xl border border-slate-200 p-4 text-base focus:border-blue-500 focus:ring-2 focus:ring-blue-100 focus:outline-none transition-all placeholder:text-slate-400"
+                    placeholder="請在此輸入或貼上文字..."></textarea>
+            </div>
+
+            <!-- 控制面板 (RWD: 手機板單欄，平板以上變雙欄) -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                <!-- 聲音/語言選擇 -->
+                <div class="sm:col-span-2">
+                    <label for="voice-select" class="block text-sm font-semibold text-slate-700 mb-2">選擇聲音 / 語言</label>
+                    <select id="voice-select" 
+                        class="w-full rounded-xl border border-slate-200 p-3 bg-white text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 focus:outline-none transition-all">
+                        <!-- 語音清單將由 JavaScript 動態產生 -->
+                    </select>
+                </div>
+
+                <!-- 語速控制 -->
+                <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                    <div class="flex justify-between text-sm font-semibold text-slate-700 mb-2">
+                        <label for="rate">語速 (Speed)</label>
+                        <span id="rate-value" class="text-blue-600 font-mono">1.0x</span>
+                    </div>
+                    <input type="range" id="rate" min="0.5" max="2" value="1" step="0.1" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer">
+                </div>
+
+                <!-- 音高控制 -->
+                <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                    <div class="flex justify-between text-sm font-semibold text-slate-700 mb-2">
+                        <label for="pitch">音高 (Pitch)</label>
+                        <span id="pitch-value" class="text-blue-600 font-mono">1.0</span>
+                    </div>
+                    <input type="range" id="pitch" min="0.5" max="2" value="1" step="0.1" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer">
+                </div>
+            </div>
+
+            <!-- 操作按鈕區 (RWD: 手機版自動撐滿、順序調整) -->
+            <div class="flex flex-col sm:flex-row gap-3">
+                <button id="btn-speak" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-xl transition-colors shadow-sm shadow-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 active:scale-[0.98] transform">
+                    播放語音
+                </button>
+                <div class="flex gap-2 sm:flex-initial">
+                    <button id="btn-pause" class="flex-1 sm:flex-none bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-3 px-5 rounded-xl transition-colors focus:outline-none active:scale-[0.98] transform">
+                        暫停
+                    </button>
+                    <button id="btn-stop" class="flex-1 sm:flex-none bg-rose-50 hover:bg-rose-100 text-rose-600 font-medium py-3 px-5 rounded-xl transition-colors focus:outline-none active:scale-[0.98] transform">
+                        停止
+                    </button>
+                    <button id="btn-clear" class="flex-1 sm:flex-none border border-slate-200 hover:bg-slate-50 text-slate-500 font-medium py-3 px-4 rounded-xl transition-colors focus:outline-none active:scale-[0.98] transform" title="清空文字">
+                        清空
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- 頁尾 -->
+    <footer class="text-center py-4 text-xs text-slate-400 border-t border-slate-100 bg-white">
+        HTML5 Web Speech API • RWD Web App
+    </footer>
+
+    <!-- JavaScript 邏輯 -->
+    <script>
+        // 檢查瀏覽器支援度
+        if (!('speechSynthesis' in window)) {
+            alert('很抱歉，您的瀏覽器不支援 Web Speech API（文字轉語音功能）。建議使用 Chrome, Edge 或 Safari。');
+        }
+
+        const synth = window.speechSynthesis;
+        
+        // 取得 DOM 元素
+        const textInput = document.getElementById('text-input');
+        const voiceSelect = document.getElementById('voice-select');
+        const rateInput = document.getElementById('rate');
+        const rateValue = document.getElementById('rate-value');
+        const pitchInput = document.getElementById('pitch');
+        const pitchValue = document.getElementById('pitch-value');
+        
+        const btnSpeak = document.getElementById('btn-speak');
+        const btnPause = document.getElementById('btn-pause');
+        const btnStop = document.getElementById('btn-stop');
+        const btnClear = document.getElementById('btn-clear');
+
+        let voices = [];
+
+        // 載入裝置可用的語音清單
+        function loadVoices() {
+            voices = synth.getVoices();
+            
+            // 如果清單為空（部分瀏覽器非同步載入需要時間），直接返回
+            if (voices.length === 0) return;
+
+            // 清空原本的選項
+            voiceSelect.innerHTML = '';
+
+            // 將語音分類排序（優先把中文/使用者語系排前面，體驗更好）
+            voices.forEach((voice) => {
+                const option = document.createElement('option');
+                option.value = voice.name;
+                option.textContent = `${voice.name} (${voice.lang})`;
+                
+                // 預設選擇中文或英文
+                if (voice.lang.includes('zh-TW') || voice.lang.includes('zh-HK')) {
+                    option.selected = true;
+                }
+                
+                voiceSelect.appendChild(option);
+            });
+        }
+
+        // 監聽語音清單載入事件（Chrome 必須監聽此事件）
+        if (speechSynthesis.onvoiceschanged !== undefined) {
+            speechSynthesis.onvoiceschanged = loadVoices;
+        }
+        // 初始化載入一次（Safari 或 Firefox 可能可以直接取得）
+        loadVoices();
+
+        // 監聽滑桿數值變更顯示
+        rateInput.addEventListener('input', () => rateValue.textContent = `${rateInput.value}x`);
+        pitchInput.addEventListener('input', () => pitchValue.textContent = pitchInput.value);
+
+        // 執行播放邏輯
+        function speak() {
+            // 如果目前正在暫停狀態，點擊播放應繼續
+            if (synth.paused) {
+                synth.resume();
+                btnPause.textContent = '暫停';
+                return;
+            }
+
+            if (textInput.value.trim() === '') {
+                textInput.focus();
+                // 給輸入框一個短暫的紅框警告提示
+                textInput.classList.add('border-rose-400', 'ring-2', 'ring-rose-100');
+                setTimeout(() => textInput.classList.remove('border-rose-400', 'ring-2', 'ring-rose-100'), 1500);
+                return;
+            }
+
+            // 如果目前正在播放，先強制停止上一個
+            synth.cancel();
+
+            const utterance = new SpeechSynthesisUtterance(textInput.value);
+            
+            // 設定選擇的語音物件
+            const selectedVoiceName = voiceSelect.value;
+            utterance.voice = voices.find(voice => voice.name === selectedVoiceName);
+            
+            // 設定語速與音高
+            utterance.rate = parseFloat(rateInput.value);
+            utterance.pitch = parseFloat(pitchInput.value);
+
+            // 語音狀態 UI 動態回饋
+            utterance.onstart = () => {
+                btnSpeak.textContent = '正在播放...';
+                btnSpeak.classList.replace('bg-blue-600', 'bg-emerald-600');
+                btnSpeak.classList.replace('hover:bg-blue-700', 'hover:bg-emerald-700');
+            };
+
+            utterance.onend = () => {
+                resetSpeakButton();
+            };
+
+            utterance.onerror = () => {
+                resetSpeakButton();
+            };
+
+            // 開始播放
+            synth.speak(utterance);
+        }
+
+        function resetSpeakButton() {
+            btnSpeak.textContent = '播放語音';
+            btnSpeak.classList.replace('bg-emerald-600', 'bg-blue-600');
+            btnSpeak.classList.replace('hover:bg-emerald-700', 'hover:bg-blue-700');
+            btnPause.textContent = '暫停';
+        }
+
+        // 按鈕事件綁定
+        btnSpeak.addEventListener('click', speak);
+
+        btnPause.addEventListener('click', () => {
+            if (synth.speaking && !synth.paused) {
+                synth.pause();
+                btnPause.textContent = '繼續';
+            } else if (synth.speaking && synth.paused) {
+                synth.resume();
+                btnPause.textContent = '暫停';
+            }
+        });
+
+        btnStop.addEventListener('click', () => {
+            synth.cancel();
+            resetSpeakButton();
+        });
+
+        btnClear.addEventListener('click', () => {
+            textInput.value = '';
+            synth.cancel();
+            resetSpeakButton();
+            textInput.focus();
+        });
+
+        // 當使用者在播放途中修改文字、速度或音高時，不自動中斷，由使用者自行重新點擊播放更新。
+    </script>
+</body>
+</html>

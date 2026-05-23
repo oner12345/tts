@@ -1,0 +1,1025 @@
+<!DOCTYPE html>
+<html lang="zh-TW" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VoiceCraft AI - 智慧文字轉語音系統</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            900: '#312e81',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* 自訂滾動條 */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(30, 41, 59, 0.5);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(99, 102, 241, 0.5);
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(99, 102, 241, 0.8);
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-full flex flex-col font-sans antialiased selection:bg-brand-500/30 selection:text-white">
+
+    <!-- 背景科技光感特效 -->
+    <div class="fixed inset-0 overflow-hidden pointer-events-none z-0">
+        <div class="absolute -top-40 -left-40 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl"></div>
+        <div class="absolute top-1/2 -right-40 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl"></div>
+    </div>
+
+    <!-- 頂部導覽列 -->
+    <header class="border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-purple-600 flex items-center justify-center shadow-lg shadow-brand-500/20">
+                    <i class="fa-solid fa-wave-square text-white text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold tracking-wider bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">VoiceCraft AI</h1>
+                    <p class="text-xs text-indigo-400/80">智慧多引擎 TTS 系統</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-4">
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                    <span class="w-1.5 h-1.5 mr-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
+                    系統就緒
+                </span>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主要內容區 -->
+    <main class="flex-grow max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 relative z-10 flex flex-col lg:flex-row gap-8">
+        
+        <!-- 左側：輸入與設定面板 (佔 3/5 寬度在寬螢幕下) -->
+        <div class="w-full lg:w-3/5 flex flex-col space-y-6">
+            
+            <!-- 引擎選擇與文字輸入卡片 -->
+            <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 backdrop-blur-sm shadow-xl">
+                <div class="flex items-center justify-between mb-4">
+                    <label class="block text-sm font-semibold text-slate-300">步驟 1: 輸入欲轉換的文字</label>
+                    <div class="text-xs text-slate-500" id="char-counter">0 / 1000 字</div>
+                </div>
+
+                <!-- 快速範本 -->
+                <div class="flex flex-wrap gap-2 mb-3">
+                    <span class="text-xs text-slate-400 self-center">快速範本：</span>
+                    <button onclick="applyTemplate('story')" class="px-2.5 py-1 text-xs rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition border border-slate-700/50">故事旁白</button>
+                    <button onclick="applyTemplate('ad')" class="px-2.5 py-1 text-xs rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition border border-slate-700/50">廣告配音</button>
+                    <button onclick="applyTemplate('news')" class="px-2.5 py-1 text-xs rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition border border-slate-700/50">新聞報導</button>
+                </div>
+
+                <textarea id="tts-text" rows="7" 
+                    class="w-full bg-slate-950/80 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 transition resize-none text-base"
+                    placeholder="在此輸入您想要轉換成語音的文字（建議 1000 字以內效果最佳）..."></textarea>
+            </div>
+
+            <!-- 語音引擎與參數設定卡片 -->
+            <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 backdrop-blur-sm shadow-xl space-y-6">
+                <label class="block text-sm font-semibold text-slate-300 mb-2">步驟 2: 設定語音引擎與發音人</label>
+                
+                <!-- 引擎切換 Tab -->
+                <div class="grid grid-cols-2 gap-2 p-1 bg-slate-950 rounded-xl border border-slate-800">
+                    <button id="btn-engine-gemini" onclick="switchEngine('gemini')" class="py-2.5 px-3 rounded-lg text-sm font-medium transition flex items-center justify-center space-x-2 bg-brand-600 text-white shadow-md">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i>
+                        <span>Gemini 擬真雲端</span>
+                    </button>
+                    <button id="btn-engine-local" onclick="switchEngine('local')" class="py-2.5 px-3 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-900/50 transition flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-desktop"></i>
+                        <span>本機高效引擎</span>
+                    </button>
+                </div>
+
+                <!-- 引擎：Gemini AI 設定區 -->
+                <div id="settings-gemini" class="space-y-5">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-2">選擇 Gemini 特色音色</label>
+                            <select id="gemini-voice" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500/30">
+                                <optgroup label="✨ 熱門推薦配音">
+                                    <option value="Kore" selected>Kore (朝氣溫暖 / 推薦)</option>
+                                    <option value="Zephyr">Zephyr (高雅知性 / 推薦)</option>
+                                    <option value="Fenrir">Fenrir (深沉故事 / 推薦)</option>
+                                    <option value="Leda">Leda (親切甜美 / 推薦)</option>
+                                </optgroup>
+                                <optgroup label="👩 溫柔女聲">
+                                    <option value="Aoede">Aoede (清亮流暢)</option>
+                                    <option value="Callirrhoe">Callirrhoe (輕柔舒緩)</option>
+                                    <option value="Autonoe">Autonoe (優雅穩重)</option>
+                                    <option value="Erinome">Erinome (知性沉著)</option>
+                                    <option value="Laomedeia">Laomedeia (活潑明快)</option>
+                                </optgroup>
+                                <optgroup label="👨 磁性男聲">
+                                    <option value="Puck">Puck (陽光大方)</option>
+                                    <option value="Charon">Charon (沉穩商務)</option>
+                                    <option value="Orus">Orus (渾厚有力)</option>
+                                    <option value="Enceladus">Enceladus (專業沉靜)</option>
+                                    <option value="Iapetus">Iapetus (磁性高雅)</option>
+                                </optgroup>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-2">情緒口吻與風格指引 (指令式)</label>
+                            <select id="gemini-mood" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500/30">
+                                <option value="自然溫柔的語氣">😊 自然溫柔 (預設)</option>
+                                <option value="充滿熱情、興奮雀躍的推銷口吻">🔥 熱情興奮 (適合廣告)</option>
+                                <option value="輕柔低沉的悄悄話、催眠耳語語氣">🌙 溫柔耳語 (故事助眠)</option>
+                                <option value="嚴肅、專業、客觀且自信的新聞報導語氣">📰 專業播報 (簡報報告)</option>
+                                <option value="帶著些微悲傷、深情款款的感性語氣">😢 悲傷感性 (情感旁白)</option>
+                                <option value="充滿朝氣、大聲活力打招呼的語氣">☀️ 活力朝氣 (開場播報)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="bg-indigo-950/20 border border-indigo-900/30 rounded-lg p-3 text-xs text-indigo-300 flex items-start space-x-2">
+                        <i class="fa-solid fa-circle-info mt-0.5"></i>
+                        <p><strong>Gemini 雲端提示語音：</strong>本引擎會將情緒融入語音生成，且提供完美的 WAV 下載！(每次合成約需數秒，請耐心等候)</p>
+                    </div>
+                </div>
+
+                <!-- 引擎：本機內建設定區 -->
+                <div id="settings-local" class="space-y-5 hidden">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-2">選擇本機內建語音 (取決於您的瀏覽器)</label>
+                            <select id="local-voice" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500/30">
+                                <!-- JS 動態填充 -->
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-2">調整語音速率 (Speed)</label>
+                            <div class="flex items-center space-x-3 mt-2">
+                                <input type="range" id="local-rate" min="0.5" max="2" step="0.1" value="1" class="flex-grow accent-brand-500">
+                                <span class="text-xs text-slate-400 w-8 text-right" id="local-rate-val">1.0x</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-2">語音音調 (Pitch)</label>
+                            <div class="flex items-center space-x-3 mt-2">
+                                <input type="range" id="local-pitch" min="0.5" max="1.5" step="0.1" value="1" class="flex-grow accent-brand-500">
+                                <span class="text-xs text-slate-400 w-8 text-right" id="local-pitch-val">1.0x</span>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-2">音量 (Volume)</label>
+                            <div class="flex items-center space-x-3 mt-2">
+                                <input type="range" id="local-volume" min="0" max="1" step="0.1" value="1" class="flex-grow accent-brand-500">
+                                <span class="text-xs text-slate-400 w-8 text-right" id="local-volume-val">100%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 執行按鈕 -->
+                <button id="btn-generate" onclick="generateSpeech()" class="w-full bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white font-semibold py-3.5 px-6 rounded-xl transition duration-200 shadow-lg shadow-brand-500/20 hover:shadow-brand-500/30 flex items-center justify-center space-x-2 group">
+                    <i class="fa-solid fa-circle-play text-lg group-hover:scale-110 transition"></i>
+                    <span id="btn-text">立即生成智慧語音</span>
+                </button>
+            </div>
+
+        </div>
+
+        <!-- 右側：播放控制與歷史紀錄 (佔 2/5 寬度在寬螢幕下) -->
+        <div class="w-full lg:w-2/5 flex flex-col space-y-6">
+            
+            <!-- 播放控制台 -->
+            <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 backdrop-blur-sm shadow-xl flex flex-col items-center justify-center text-center relative overflow-hidden min-h-[300px]">
+                
+                <h3 class="text-sm font-semibold text-slate-300 mb-6 w-full text-left">步驟 3: 音訊控制台</h3>
+
+                <!-- 音頻視覺化動畫 Canvas -->
+                <div class="w-full h-24 flex items-center justify-center mb-6 relative">
+                    <canvas id="visualizer-canvas" class="w-full h-full rounded-xl bg-slate-950/40 border border-slate-800/50"></canvas>
+                    <div id="loading-spinner" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/90 rounded-xl hidden">
+                        <div class="w-10 h-10 border-4 border-brand-500 border-t-transparent rounded-full animate-spin"></div>
+                        <span class="text-xs text-slate-400 mt-2 font-medium">AI 正在努力合成美妙聲音...</span>
+                    </div>
+                    <div id="idle-status" class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                        <i class="fa-solid fa-microphone-lines text-slate-700 text-3xl mb-1"></i>
+                        <span class="text-xs text-slate-600">等待生成或播放音訊</span>
+                    </div>
+                </div>
+
+                <!-- 音訊控制按鈕群 -->
+                <div class="w-full flex flex-col space-y-4">
+                    <!-- 隱藏的實際原生 Audio -->
+                    <audio id="audio-player" class="hidden"></audio>
+
+                    <!-- 虛擬自訂播放條 -->
+                    <div class="flex items-center justify-between space-x-3 text-xs text-slate-400">
+                        <span id="current-time">00:00</span>
+                        <div class="flex-grow bg-slate-800 rounded-full h-1.5 relative cursor-pointer" id="progress-container">
+                            <div class="bg-brand-500 h-1.5 rounded-full w-0" id="progress-bar"></div>
+                        </div>
+                        <span id="duration">00:00</span>
+                    </div>
+
+                    <div class="flex items-center justify-center space-x-4">
+                        <!-- 下載按鈕 -->
+                        <button id="btn-download" disabled onclick="downloadAudio()" class="p-3 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed rounded-full text-slate-300 hover:text-white transition shadow" title="下載 WAV 音訊檔">
+                            <i class="fa-solid fa-download text-base"></i>
+                        </button>
+
+                        <!-- 主播放鈕 -->
+                        <button id="btn-play-pause" disabled onclick="togglePlay()" class="p-5 bg-brand-600 hover:bg-brand-500 disabled:opacity-40 disabled:cursor-not-allowed rounded-full text-white transition shadow-lg shadow-brand-500/10 hover:scale-105 active:scale-95 flex items-center justify-center w-14 h-14" title="播放 / 暫停">
+                            <i class="fa-solid fa-play text-lg ml-0.5" id="play-icon"></i>
+                        </button>
+
+                        <!-- 停止重置按鈕 -->
+                        <button id="btn-stop" disabled onclick="stopAudio()" class="p-3 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed rounded-full text-slate-300 hover:text-white transition shadow" title="停止播放">
+                            <i class="fa-solid fa-stop text-base"></i>
+                        </button>
+                    </div>
+
+                    <!-- 提示訊息 -->
+                    <p class="text-xs text-slate-500" id="audio-source-tip">請先輸入文字並點擊「立即生成智慧語音」</p>
+                </div>
+            </div>
+
+            <!-- 歷史紀錄 -->
+            <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 backdrop-blur-sm shadow-xl flex flex-col flex-grow">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-sm font-semibold text-slate-300">轉換歷史紀錄</h3>
+                    <button onclick="clearHistory()" class="text-xs text-slate-500 hover:text-rose-400 transition">
+                        <i class="fa-solid fa-trash-can mr-1"></i>清除全部
+                    </button>
+                </div>
+                <!-- 列表容器 -->
+                <div id="history-container" class="space-y-3 max-h-[220px] overflow-y-auto pr-1 flex-grow">
+                    <!-- JS 動態生成項目 -->
+                    <div class="text-center py-8 text-slate-600 text-xs flex flex-col items-center justify-center">
+                        <i class="fa-solid fa-folder-open text-2xl mb-2"></i>
+                        <span>暫無歷史轉換紀錄</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- 頁尾 -->
+    <footer class="border-t border-slate-900 bg-slate-950 py-6 mt-12 relative z-10 text-center text-xs text-slate-600">
+        <div class="max-w-7xl mx-auto px-4">
+            <p>© 2026 VoiceCraft AI. All rights reserved. 基於先進 AI 技術與原生 HTML5 Web Speech 設計。</p>
+            <p class="mt-1 text-slate-700">支援離線本機語音合成及 Gemini 情感聲學模型</p>
+        </div>
+    </footer>
+
+    <!-- 自訂 Toast 訊息提示元件 -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col space-y-2 pointer-events-none"></div>
+
+    <script>
+        // ==========================================
+        // 全局狀態與變數設定
+        // ==========================================
+        const apiKey = ""; // Canvas 環境在執行時會自動提供金鑰
+        let currentEngine = 'gemini'; // 'gemini' | 'local'
+        let localVoices = [];
+        let synth = window.speechSynthesis;
+        let currentUtterance = null; // 供本機引擎使用
+        let geminiAudioBlob = null; // 供 Gemini 引擎下載使用
+        let geminiAudioUrl = null; // 供 Gemini 播放使用
+        let isPlaying = false;
+        let animationFrameId = null;
+        let audioHistory = [];
+
+        // DOM 元素引用
+        const textInput = document.getElementById('tts-text');
+        const charCounter = document.getElementById('char-counter');
+        const btnGemini = document.getElementById('btn-engine-gemini');
+        const btnLocal = document.getElementById('btn-engine-local');
+        const settingsGemini = document.getElementById('settings-gemini');
+        const settingsLocal = document.getElementById('settings-local');
+        const localVoiceSelect = document.getElementById('local-voice');
+        const btnGenerate = document.getElementById('btn-generate');
+        const btnText = document.getElementById('btn-text');
+        const audioPlayer = document.getElementById('audio-player');
+        const loadingSpinner = document.getElementById('loading-spinner');
+        const idleStatus = document.getElementById('idle-status');
+        const btnPlayPause = document.getElementById('btn-play-pause');
+        const btnStop = document.getElementById('btn-stop');
+        const btnDownload = document.getElementById('btn-download');
+        const playIcon = document.getElementById('play-icon');
+        const progressBar = document.getElementById('progress-bar');
+        const progressContainer = document.getElementById('progress-container');
+        const currentTimeEl = document.getElementById('current-time');
+        const durationEl = document.getElementById('duration');
+        const canvas = document.getElementById('visualizer-canvas');
+        const ctx = canvas.getContext('2d');
+        const audioSourceTip = document.getElementById('audio-source-tip');
+
+        // 音訊視覺化狀態
+        let visualizerActive = false;
+        let phase = 0;
+
+        // ==========================================
+        // 頁面初始化與事件綁定
+        // ==========================================
+        window.addEventListener('load', () => {
+            initCanvas();
+            initLocalVoices();
+            loadHistory();
+            updateCharCount();
+
+            // 輸入字數監聽
+            textInput.addEventListener('input', updateCharCount);
+
+            // 本機參數調整顯示數值
+            ['rate', 'pitch', 'volume'].forEach(param => {
+                const el = document.getElementById(`local-${param}`);
+                const valEl = document.getElementById(`local-${param}-val`);
+                el.addEventListener('input', () => {
+                    valEl.textContent = param === 'volume' ? `${Math.round(el.value * 100)}%` : `${el.value}x`;
+                });
+            });
+
+            // 進度條點擊跳轉
+            progressContainer.addEventListener('click', (e) => {
+                if (!audioPlayer.src && currentEngine === 'gemini') return;
+                const rect = progressContainer.getBoundingClientRect();
+                const clickPosition = (e.clientX - rect.left) / rect.width;
+                
+                if (currentEngine === 'gemini' && audioPlayer.src) {
+                    audioPlayer.currentTime = clickPosition * audioPlayer.duration;
+                }
+            });
+
+            // 音訊播放狀態更新
+            audioPlayer.addEventListener('timeupdate', updateProgressBar);
+            audioPlayer.addEventListener('ended', () => {
+                setPlayState(false);
+                stopVisualizer();
+            });
+            audioPlayer.addEventListener('loadedmetadata', () => {
+                durationEl.textContent = formatTime(audioPlayer.duration);
+            });
+        });
+
+        // ==========================================
+        // 介面控制與 RWD 切換
+        // ==========================================
+        function updateCharCount() {
+            const count = textInput.value.length;
+            charCounter.textContent = `${count} / 1000 字`;
+            if (count > 1000) {
+                charCounter.classList.add('text-rose-500');
+            } else {
+                charCounter.classList.remove('text-rose-500');
+            }
+        }
+
+        // 應用快速範本
+        const templates = {
+            story: "在很久很久以前，有一座被濃霧籠罩的神祕森林。傳說中，林子的最深處藏著一顆會發光的藍色星石，凡是看過它的人，都能獲得聽懂動物說話的能力。小狐狸阿奇抬起頭，看著遠方幽暗的樹影，心中燃起了一絲勇氣。他決定踏上冒險的旅程，去尋找那個傳說中的奇蹟...",
+            ad: "【年度最震撼限時特惠！】你是否也在尋找一個真正高效且優雅的語音解決方案？全新升級的 VoiceCraft AI，擁有地表最頂尖的情感聲學模型，能為你的文案注入真實人類的情感溫度！立即註冊體驗，開啟你的聲音奇幻之旅！好聲音，不再難尋！",
+            news: "科技速遞頭條播報：今天，AI 智慧研發中心正式推出新一代具有情感交互特徵的雙語語音合成系統。該系統首度實踐了在端側進行超低延遲語音情緒渲染的卓越性能，使機器語音在自然度、流暢度上進一步逼近專業播音員。以下是詳細報導..."
+        };
+
+        function applyTemplate(type) {
+            textInput.value = templates[type];
+            updateCharCount();
+            showToast('已載入範本文案', 'info');
+        }
+
+        // 切換引擎
+        function switchEngine(engine) {
+            currentEngine = engine;
+            stopAudio(); // 切換時停止當前播放
+            
+            if (engine === 'gemini') {
+                btnGemini.className = "py-2.5 px-3 rounded-lg text-sm font-medium transition flex items-center justify-center space-x-2 bg-brand-600 text-white shadow-md";
+                btnLocal.className = "py-2.5 px-3 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-900/50 transition flex items-center justify-center space-x-2";
+                settingsGemini.classList.remove('hidden');
+                settingsLocal.classList.add('hidden');
+                audioSourceTip.textContent = "Gemini AI 引擎已啟用，請生成音訊後播放";
+                btnText.textContent = "立即生成智慧語音";
+            } else {
+                btnLocal.className = "py-2.5 px-3 rounded-lg text-sm font-medium transition flex items-center justify-center space-x-2 bg-brand-600 text-white shadow-md";
+                btnGemini.className = "py-2.5 px-3 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-900/50 transition flex items-center justify-center space-x-2";
+                settingsLocal.classList.remove('hidden');
+                settingsGemini.classList.add('hidden');
+                audioSourceTip.textContent = "本機引擎為即時播放，可直接點擊「立即生成語音」";
+                btnText.textContent = "立即在本機播放語音";
+            }
+        }
+
+        // 初始化本機 SpeechSynthesis Voices
+        function initLocalVoices() {
+            if (!synth) {
+                showToast('您的瀏覽器不支援 SpeechSynthesis 本機語音合成', 'error');
+                return;
+            }
+
+            const populate = () => {
+                localVoices = synth.getVoices();
+                localVoiceSelect.innerHTML = '';
+                
+                // 過濾並優先推薦中文、英文語系
+                const zhVoices = localVoices.filter(v => v.lang.includes('ZH') || v.lang.includes('zh'));
+                const enVoices = localVoices.filter(v => v.lang.includes('EN') || v.lang.includes('en'));
+                const otherVoices = localVoices.filter(v => !v.lang.includes('ZH') && !v.lang.includes('zh') && !v.lang.includes('EN') && !v.lang.includes('en'));
+
+                const appendGroup = (label, list) => {
+                    if (list.length === 0) return;
+                    const group = document.createElement('optgroup');
+                    group.label = label;
+                    list.forEach(voice => {
+                        const option = document.createElement('option');
+                        option.value = voice.name;
+                        option.textContent = `${voice.name} (${voice.lang})`;
+                        if (voice.default) option.selected = true;
+                        group.appendChild(option);
+                    });
+                    localVoiceSelect.appendChild(group);
+                };
+
+                appendGroup('🌐 中文語音 (Chinese Voices)', zhVoices);
+                appendGroup('🇺🇸 英文語音 (English Voices)', enVoices);
+                appendGroup('🌍 其他本機語音 (Other Voices)', otherVoices);
+            };
+
+            populate();
+            if (synth.onvoiceschanged !== undefined) {
+                synth.onvoiceschanged = populate;
+            }
+        }
+
+        // ==========================================
+        // 核心功能：文字轉語音生成 (Gemini 與 Local)
+        // ==========================================
+        async function generateSpeech() {
+            const text = textInput.value.trim();
+            if (!text) {
+                showToast('請先輸入要轉換的文字！', 'warning');
+                return;
+            }
+            if (text.length > 1000) {
+                showToast('輸入字數已超出 1000 字限制，請刪減！', 'warning');
+                return;
+            }
+
+            stopAudio();
+
+            if (currentEngine === 'gemini') {
+                await generateGeminiSpeech(text);
+            } else {
+                generateLocalSpeech(text);
+            }
+        }
+
+        // 1. 本機語音生成
+        function generateLocalSpeech(text) {
+            if (!synth) {
+                showToast('本機語音系統不可用', 'error');
+                return;
+            }
+
+            const voiceName = localVoiceSelect.value;
+            const rate = parseFloat(document.getElementById('local-rate').value);
+            const pitch = parseFloat(document.getElementById('local-pitch').value);
+            const volume = parseFloat(document.getElementById('local-volume').value);
+
+            currentUtterance = new SpeechSynthesisUtterance(text);
+            const selectedVoice = localVoices.find(v => v.name === voiceName);
+            if (selectedVoice) {
+                currentUtterance.voice = selectedVoice;
+            }
+
+            currentUtterance.rate = rate;
+            currentUtterance.pitch = pitch;
+            currentUtterance.volume = volume;
+
+            currentUtterance.onstart = () => {
+                setPlayState(true);
+                startVisualizer();
+                idleStatus.classList.add('hidden');
+                audioSourceTip.textContent = "正在透過本機播放: " + voiceName;
+            };
+
+            currentUtterance.onend = () => {
+                setPlayState(false);
+                stopVisualizer();
+                audioSourceTip.textContent = "播放完畢";
+            };
+
+            currentUtterance.onerror = (e) => {
+                setPlayState(false);
+                stopVisualizer();
+                showToast('本機播放發生錯誤: ' + e.error, 'error');
+            };
+
+            // 啟動本機播放
+            synth.speak(currentUtterance);
+
+            // 本機不支援導出/下載，所以禁用下載與進度控制
+            btnDownload.disabled = true;
+            btnPlayPause.disabled = false;
+            btnStop.disabled = false;
+            progressBar.style.width = '100%';
+            durationEl.textContent = "即時";
+        }
+
+        // 2. Gemini 智慧雲端 TTS 生成 (支援情緒及情感色彩、下載)
+        async function generateGeminiSpeech(text) {
+            loadingSpinner.classList.remove('hidden');
+            idleStatus.classList.add('hidden');
+            btnGenerate.disabled = true;
+            btnPlayPause.disabled = true;
+            btnStop.disabled = true;
+            btnDownload.disabled = true;
+
+            const selectedVoice = document.getElementById('gemini-voice').value;
+            const mood = document.getElementById('gemini-mood').value;
+            const finalPrompt = `【口吻指引：請${mood}。】\n${text}`;
+
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`;
+            const payload = {
+                contents: [{
+                    parts: [{ text: finalPrompt }]
+                }],
+                generationConfig: {
+                    responseModalities: ["AUDIO"],
+                    speechConfig: {
+                        voiceConfig: {
+                            prebuiltVoiceConfig: {
+                                voiceName: selectedVoice
+                            }
+                        }
+                    }
+                }
+            };
+
+            try {
+                const data = await fetchWithRetry(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const base64Audio = data.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+                const mimeType = data.candidates?.[0]?.content?.parts?.[0]?.inlineData?.mimeType || "audio/L16;rate=24000";
+
+                if (!base64Audio) {
+                    throw new Error("無法從 API 獲取有效的音訊數據");
+                }
+
+                // 提取採樣率（預設 24000Hz）
+                let sampleRate = 24000;
+                const rateMatch = mimeType.match(/rate=(\d+)/);
+                if (rateMatch && rateMatch[1]) {
+                    sampleRate = parseInt(rateMatch[1], 10);
+                }
+
+                // 將 PCM16 轉換為標準 WAV
+                const pcmBytes = base64ToUint8Array(base64Audio);
+                geminiAudioBlob = convertPCMToWAV(pcmBytes, sampleRate);
+
+                // 釋放舊的 URL
+                if (geminiAudioUrl) {
+                    URL.revokeObjectURL(geminiAudioUrl);
+                }
+                geminiAudioUrl = URL.createObjectURL(geminiAudioBlob);
+                audioPlayer.src = geminiAudioUrl;
+
+                // 啟用播放按鈕
+                btnPlayPause.disabled = false;
+                btnStop.disabled = false;
+                btnDownload.disabled = false;
+                audioSourceTip.textContent = `生成成功 (音色: ${selectedVoice})，點擊 Play 鍵播放`;
+                
+                showToast('語音生成成功！已備妥播放。', 'success');
+
+                // 加入歷史紀錄
+                saveToHistory(text, selectedVoice);
+
+                // 自動播放一次
+                togglePlay();
+
+            } catch (error) {
+                showToast(`語音合成失敗: ${error.message}`, 'error');
+                idleStatus.classList.remove('hidden');
+            } finally {
+                loadingSpinner.classList.add('hidden');
+                btnGenerate.disabled = false;
+            }
+        }
+
+        // ==========================================
+        // 指數避讓重試機制 (Exponential Backoff)
+        // ==========================================
+        async function fetchWithRetry(url, options, maxRetries = 5) {
+            let delay = 1000;
+            for (let i = 0; i < maxRetries; i++) {
+                try {
+                    const response = await fetch(url, options);
+                    if (response.ok) {
+                        return await response.json();
+                    }
+                    if (response.status === 429 || response.status >= 500) {
+                        // 遇到頻率限制或伺服器錯誤時，進行重試
+                    } else {
+                        const errText = await response.text();
+                        throw new Error(`HTTP ${response.status}: ${errText || '未知錯誤'}`);
+                    }
+                } catch (error) {
+                    if (i === maxRetries - 1) throw error;
+                }
+                await new Promise(res => setTimeout(res, delay));
+                delay *= 2;
+            }
+        }
+
+        // ==========================================
+        // PCM 轉 WAV 格式化函式
+        // ==========================================
+        function base64ToUint8Array(base64) {
+            const binaryString = atob(base64);
+            const bytes = new Uint8Array(binaryString.length);
+            for (let i = 0; i < binaryString.length; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+            }
+            return bytes;
+        }
+
+        function convertPCMToWAV(pcmUint8, sampleRate = 24000) {
+            const numOfChannels = 1;
+            const bitsPerSample = 16;
+            const byteRate = (sampleRate * numOfChannels * bitsPerSample) / 8;
+            const blockAlign = (numOfChannels * bitsPerSample) / 8;
+            const dataSize = pcmUint8.byteLength;
+            const wavHeaderSize = 44;
+            const wavBuffer = new ArrayBuffer(wavHeaderSize + dataSize);
+            const view = new DataView(wavBuffer);
+
+            // RIFF 區塊
+            writeString(view, 0, 'RIFF');
+            view.setUint32(4, 36 + dataSize, true); // 檔案大小
+            writeString(view, 8, 'WAVE');
+
+            // fmt 區塊
+            writeString(view, 12, 'fmt ');
+            view.setUint32(16, 16, true); // 格式資訊大小
+            view.setUint16(20, 1, true); // 音訊格式 (1 = PCM)
+            view.setUint16(22, numOfChannels, true); // 聲道數
+            view.setUint32(24, sampleRate, true); // 採樣率
+            view.setUint32(28, byteRate, true); // 每秒位元組數
+            view.setUint16(32, blockAlign, true); // 區塊對齊
+            view.setUint16(34, bitsPerSample, true); // 每個採樣位元數
+
+            // data 區塊
+            writeString(view, 36, 'data');
+            view.setUint32(40, dataSize, true); // 原始數據大小
+
+            // 寫入原始音訊數據
+            const wavUint8 = new Uint8Array(wavBuffer);
+            wavUint8.set(pcmUint8, wavHeaderSize);
+
+            return new Blob([wavBuffer], { type: 'audio/wav' });
+        }
+
+        function writeString(view, offset, string) {
+            for (let i = 0; i < string.length; i++) {
+                view.setUint8(offset + i, string.charCodeAt(i));
+            }
+        }
+
+        // ==========================================
+        // 播放控制邏輯
+        // ==========================================
+        function togglePlay() {
+            if (currentEngine === 'local') {
+                if (synth.speaking) {
+                    if (synth.paused) {
+                        synth.resume();
+                        setPlayState(true);
+                        startVisualizer();
+                    } else {
+                        synth.pause();
+                        setPlayState(false);
+                        stopVisualizer();
+                    }
+                } else {
+                    generateSpeech();
+                }
+            } else {
+                // Gemini 播放控制
+                if (!audioPlayer.src) return;
+                
+                if (isPlaying) {
+                    audioPlayer.pause();
+                    setPlayState(false);
+                    stopVisualizer();
+                } else {
+                    audioPlayer.play();
+                    setPlayState(true);
+                    startVisualizer();
+                }
+            }
+        }
+
+        function stopAudio() {
+            if (currentEngine === 'local') {
+                if (synth) {
+                    synth.cancel();
+                }
+            } else {
+                audioPlayer.pause();
+                audioPlayer.currentTime = 0;
+            }
+            setPlayState(false);
+            stopVisualizer();
+            updateProgressBar();
+        }
+
+        function setPlayState(playing) {
+            isPlaying = playing;
+            if (playing) {
+                playIcon.className = "fa-solid fa-pause text-lg";
+            } else {
+                playIcon.className = "fa-solid fa-play text-lg ml-0.5";
+            }
+        }
+
+        function updateProgressBar() {
+            if (currentEngine === 'gemini' && audioPlayer.duration) {
+                const pct = (audioPlayer.currentTime / audioPlayer.duration) * 100;
+                progressBar.style.width = `${pct}%`;
+                currentTimeEl.textContent = formatTime(audioPlayer.currentTime);
+            } else if (currentEngine === 'local') {
+                progressBar.style.width = '0%';
+                currentTimeEl.textContent = "00:00";
+            }
+        }
+
+        function downloadAudio() {
+            if (currentEngine === 'gemini' && geminiAudioBlob) {
+                const dLink = document.createElement('a');
+                dLink.href = geminiAudioUrl;
+                dLink.download = `voicecraft-${Date.now()}.wav`;
+                document.body.appendChild(dLink);
+                dLink.click();
+                document.body.removeChild(dLink);
+                showToast('已開始下載音訊檔！', 'success');
+            } else {
+                showToast('本機語音不支援下載格式', 'warning');
+            }
+        }
+
+        function formatTime(seconds) {
+            if (isNaN(seconds)) return "00:00";
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        // ==========================================
+        // 畫布音波視覺化 (CSS Canvas 類波動效)
+        // ==========================================
+        function initCanvas() {
+            const dpr = window.devicePixelRatio || 1;
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+            ctx.scale(dpr, dpr);
+            drawIdleWave();
+        }
+
+        window.addEventListener('resize', () => {
+            initCanvas();
+        });
+
+        function startVisualizer() {
+            if (visualizerActive) return;
+            visualizerActive = true;
+            animateWave();
+        }
+
+        function stopVisualizer() {
+            visualizerActive = false;
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+            }
+            drawIdleWave();
+        }
+
+        function drawIdleWave() {
+            const width = canvas.width / (window.devicePixelRatio || 1);
+            const height = canvas.height / (window.devicePixelRatio || 1);
+            ctx.clearRect(0, 0, width, height);
+            
+            ctx.strokeStyle = '#475569';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(0, height / 2);
+            ctx.lineTo(width, height / 2);
+            ctx.stroke();
+        }
+
+        function animateWave() {
+            if (!visualizerActive) return;
+            
+            const width = canvas.width / (window.devicePixelRatio || 1);
+            const height = canvas.height / (window.devicePixelRatio || 1);
+            ctx.clearRect(0, 0, width, height);
+
+            phase += 0.15; // 波浪前進速度
+
+            // 繪製多層精緻波形線條
+            drawWaveLine(width, height, phase, 25, '#6366f1', 2);
+            drawWaveLine(width, height, phase + 1.5, 15, '#a855f7', 1.5);
+            drawWaveLine(width, height, phase + 3, 8, '#3b82f6', 1);
+
+            animationFrameId = requestAnimationFrame(animateWave);
+        }
+
+        function drawWaveLine(width, height, customPhase, amplitude, color, strokeWidth) {
+            ctx.strokeStyle = color;
+            ctx.lineWidth = strokeWidth;
+            ctx.beginPath();
+
+            for (let x = 0; x < width; x++) {
+                // 正弦波加上兩側漸弱效果，使其完美融入畫布兩側
+                const damping = Math.sin((x / width) * Math.PI); 
+                const y = (height / 2) + Math.sin(x * 0.04 + customPhase) * amplitude * damping;
+                if (x === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            }
+            ctx.stroke();
+        }
+
+        // ==========================================
+        // 歷史轉換紀錄儲存與管理
+        // ==========================================
+        function saveToHistory(text, voice) {
+            const trimmedText = text.length > 30 ? text.substring(0, 30) + '...' : text;
+            const historyItem = {
+                id: Date.now(),
+                text: text,
+                display: trimmedText,
+                voice: voice,
+                engine: currentEngine,
+                time: new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' })
+            };
+
+            // 最多保存 10 條
+            audioHistory.unshift(historyItem);
+            if (audioHistory.length > 10) {
+                audioHistory.pop();
+            }
+
+            localStorage.setItem('voicecraft_history', JSON.stringify(audioHistory));
+            renderHistory();
+        }
+
+        function loadHistory() {
+            const localData = localStorage.getItem('voicecraft_history');
+            if (localData) {
+                try {
+                    audioHistory = JSON.parse(localData);
+                } catch(e) {
+                    audioHistory = [];
+                }
+            }
+            renderHistory();
+        }
+
+        function renderHistory() {
+            const container = document.getElementById('history-container');
+            if (audioHistory.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-8 text-slate-600 text-xs flex flex-col items-center justify-center">
+                        <i class="fa-solid fa-folder-open text-2xl mb-2"></i>
+                        <span>暫無歷史轉換紀錄</span>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = audioHistory.map(item => `
+                <div class="bg-slate-950/60 hover:bg-slate-950/90 border border-slate-800/80 rounded-xl p-3 flex items-center justify-between transition group">
+                    <div class="flex-grow pr-3 min-w-0" onclick="loadHistoryItem(${item.id})" class="cursor-pointer">
+                        <p class="text-xs font-medium text-slate-300 truncate cursor-pointer group-hover:text-brand-400">${item.display}</p>
+                        <div class="flex items-center space-x-2 mt-1 text-[10px] text-slate-500">
+                            <span class="bg-brand-500/10 text-brand-400 px-1.5 py-0.2 rounded">${item.engine === 'gemini' ? 'Gemini AI' : '本機'}</span>
+                            <span>音色: ${item.voice}</span>
+                            <span>• ${item.time}</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-1.5 flex-shrink-0">
+                        <button onclick="loadHistoryItem(${item.id})" class="p-1.5 hover:bg-slate-800 rounded-md text-slate-400 hover:text-brand-400 transition" title="重新載入文案與設定">
+                            <i class="fa-solid fa-arrow-rotate-left text-xs"></i>
+                        </button>
+                        <button onclick="deleteHistoryItem(${item.id})" class="p-1.5 hover:bg-slate-800 rounded-md text-slate-400 hover:text-rose-400 transition opacity-0 group-hover:opacity-100" title="刪除">
+                            <i class="fa-solid fa-trash-can text-xs"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function loadHistoryItem(id) {
+            const item = audioHistory.find(h => h.id === id);
+            if (item) {
+                textInput.value = item.text;
+                updateCharCount();
+                switchEngine(item.engine);
+                
+                if (item.engine === 'gemini') {
+                    document.getElementById('gemini-voice').value = item.voice;
+                } else {
+                    document.getElementById('local-voice').value = item.voice;
+                }
+                
+                showToast('已還原歷史文案與語音設定', 'success');
+            }
+        }
+
+        function deleteHistoryItem(id) {
+            audioHistory = audioHistory.filter(h => h.id !== id);
+            localStorage.setItem('voicecraft_history', JSON.stringify(audioHistory));
+            renderHistory();
+            showToast('已刪除歷史紀錄', 'info');
+        }
+
+        function clearHistory() {
+            audioHistory = [];
+            localStorage.removeItem('voicecraft_history');
+            renderHistory();
+            showToast('已清除全部歷史紀錄', 'info');
+        }
+
+        // ==========================================
+        // UI 回饋：精美 Toast 提示
+        // ==========================================
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            let bgClass = 'bg-slate-900 border-slate-800 text-slate-100';
+            let iconClass = 'fa-circle-info text-blue-400';
+            
+            if (type === 'success') {
+                bgClass = 'bg-slate-900 border-emerald-900/50 text-emerald-100';
+                iconClass = 'fa-circle-check text-emerald-400';
+            } else if (type === 'error') {
+                bgClass = 'bg-slate-900 border-rose-900/50 text-rose-100';
+                iconClass = 'fa-triangle-exclamation text-rose-400';
+            } else if (type === 'warning') {
+                bgClass = 'bg-slate-900 border-amber-900/50 text-amber-100';
+                iconClass = 'fa-circle-exclamation text-amber-400';
+            }
+
+            toast.className = `flex items-center space-x-3 px-4 py-3 rounded-xl border ${bgClass} shadow-xl transform translate-y-2 opacity-0 transition-all duration-300 pointer-events-auto max-w-sm`;
+            toast.innerHTML = `
+                <i class="fa-solid ${iconClass} text-base flex-shrink-0"></i>
+                <span class="text-xs font-medium">${message}</span>
+            `;
+
+            container.appendChild(toast);
+
+            // 動態顯現與消失
+            setTimeout(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            }, 50);
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => {
+                    container.removeChild(toast);
+                }, 300);
+            }, 3500);
+        }
+
+    </script>
+</body>
+</html>
